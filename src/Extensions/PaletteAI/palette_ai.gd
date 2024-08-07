@@ -105,7 +105,7 @@ func generate_palette(
 	height: int = 8,
 	new_colors: int = 100
 ) -> void:
-	var palette_colors: PackedColorArray
+	var palette_colors := PackedColorArray()
 	var serialize_data := {"comment": "Ai palette", "colors": [], "width": width, "height": height}
 	serialize_data.colors.push_back({"color": color_a, "index": 0})
 	serialize_data.colors.push_back({"color": color_b, "index": 1})

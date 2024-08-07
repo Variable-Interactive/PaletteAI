@@ -83,3 +83,4 @@ text = "Train on Pixelorama's current palette"
 [connection signal="item_selected" from="VBoxContainer/VBoxContainer/PaletteOption/RowColumn" to="." method="_on_row_column_item_selected"]
 [connection signal="color_changed" from="VBoxContainer/HBoxContainer/Left" to="." method="_on_left_color_changed"]
 [connection signal="color_changed" from="VBoxContainer/HBoxContainer/Right" to="." method="_on_right_color_changed"]
+[connection signal="pressed" from="VBoxContainer/Train" to="." method="_on_train_pressed"]
