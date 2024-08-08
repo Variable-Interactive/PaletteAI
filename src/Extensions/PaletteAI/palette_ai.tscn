@@ -5,7 +5,7 @@
 [node name="PaletteAI" type="ConfirmationDialog"]
 title = "Palette AI"
 position = Vector2i(0, 36)
-size = Vector2i(709, 427)
+size = Vector2i(615, 330)
 ok_button_text = "Add Palette"
 script = ExtResource("1_cc701")
 
