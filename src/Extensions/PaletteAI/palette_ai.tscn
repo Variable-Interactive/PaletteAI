@@ -3,12 +3,13 @@
 [ext_resource type="Script" path="res://src/Extensions/PaletteAI/palette_ai.gd" id="1_cc701"]
 
 [node name="PaletteAI" type="ConfirmationDialog"]
-title = "PaletteAI"
+title = "Palette AI"
 position = Vector2i(0, 36)
-size = Vector2i(586, 434)
+size = Vector2i(709, 427)
+ok_button_text = "Add Palette"
 script = ExtResource("1_cc701")
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
+[node name="HBoxContainer3" type="HBoxContainer" parent="."]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -19,22 +20,31 @@ offset_bottom = -49.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="VBoxContainer"]
+[node name="VBoxContainer2" type="VBoxContainer" parent="HBoxContainer3"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Train" type="Button" parent="HBoxContainer3/VBoxContainer2"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Train on Pixelorama's current palette"
+
+[node name="PanelContainer" type="PanelContainer" parent="HBoxContainer3/VBoxContainer2"]
+self_modulate = Color(0.886461, 0.886461, 0.886461, 1)
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PaletteColorsPreview" type="TextureRect" parent="VBoxContainer/VBoxContainer"]
+[node name="PaletteColorsPreview" type="TextureRect" parent="HBoxContainer3/VBoxContainer2/PanelContainer"]
 unique_name_in_owner = true
 texture_filter = 1
 layout_mode = 2
-size_flags_vertical = 3
 stretch_mode = 5
 
-[node name="PaletteOption" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
+[node name="PaletteOption" type="HBoxContainer" parent="HBoxContainer3/VBoxContainer2"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="RowColumn" type="OptionButton" parent="VBoxContainer/VBoxContainer/PaletteOption"]
+[node name="RowColumn" type="OptionButton" parent="HBoxContainer3/VBoxContainer2/PaletteOption"]
 unique_name_in_owner = true
 layout_mode = 2
 item_count = 2
@@ -44,43 +54,70 @@ popup/item_0/id = 0
 popup/item_1/text = "Columns:"
 popup/item_1/id = 1
 
-[node name="Label" type="Label" parent="VBoxContainer"]
+[node name="VSeparator" type="VSeparator" parent="HBoxContainer3"]
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="HBoxContainer3"]
+layout_mode = 2
+
+[node name="ItemList" type="GridContainer" parent="HBoxContainer3/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+columns = 2
+
+[node name="ColorLabel" type="Label" parent="HBoxContainer3/VBoxContainer/ItemList"]
+custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 text = "Choose first two colors of your palette:"
+autowrap_mode = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="VBoxContainer"]
+[node name="ColorSelect" type="HBoxContainer" parent="HBoxContainer3/VBoxContainer/ItemList"]
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
+size_flags_horizontal = 3
 
-[node name="Left" type="ColorPickerButton" parent="VBoxContainer/HBoxContainer"]
+[node name="Left" type="ColorPickerButton" parent="HBoxContainer3/VBoxContainer/ItemList/ColorSelect"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 25)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Right" type="ColorPickerButton" parent="HBoxContainer3/VBoxContainer/ItemList/ColorSelect"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 25)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Label" type="Label" parent="HBoxContainer3/VBoxContainer/ItemList"]
+layout_mode = 2
+text = "Maximum Colors:"
+
+[node name="Maximum" type="SpinBox" parent="HBoxContainer3/VBoxContainer/ItemList"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 2.0
+value = 10.0
+allow_greater = true
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="HBoxContainer3/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="HBoxContainer3/VBoxContainer/HBoxContainer2"]
+layout_mode = 2
+text = "Palette Name:"
+
+[node name="PaletteName" type="LineEdit" parent="HBoxContainer3/VBoxContainer/HBoxContainer2"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-
-[node name="Right" type="ColorPickerButton" parent="VBoxContainer/HBoxContainer"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="HBoxContainer2" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="VBoxContainer/HBoxContainer2"]
-layout_mode = 2
-text = "Name:"
-
-[node name="PaletteName" type="LineEdit" parent="VBoxContainer/HBoxContainer2"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Train" type="Button" parent="VBoxContainer"]
-layout_mode = 2
-text = "Train on Pixelorama's current palette"
+placeholder_text = "untitled"
 
 [connection signal="about_to_popup" from="." to="." method="_on_about_to_popup"]
 [connection signal="confirmed" from="." to="." method="_on_confirmed"]
-[connection signal="item_selected" from="VBoxContainer/VBoxContainer/PaletteOption/RowColumn" to="." method="_on_row_column_item_selected"]
-[connection signal="color_changed" from="VBoxContainer/HBoxContainer/Left" to="." method="_on_left_color_changed"]
-[connection signal="color_changed" from="VBoxContainer/HBoxContainer/Right" to="." method="_on_right_color_changed"]
-[connection signal="pressed" from="VBoxContainer/Train" to="." method="_on_train_pressed"]
+[connection signal="pressed" from="HBoxContainer3/VBoxContainer2/Train" to="." method="_on_train_pressed"]
+[connection signal="item_selected" from="HBoxContainer3/VBoxContainer2/PaletteOption/RowColumn" to="." method="_on_row_column_item_selected"]
+[connection signal="color_changed" from="HBoxContainer3/VBoxContainer/ItemList/ColorSelect/Left" to="." method="_on_left_color_changed"]
+[connection signal="color_changed" from="HBoxContainer3/VBoxContainer/ItemList/ColorSelect/Right" to="." method="_on_right_color_changed"]
+[connection signal="value_changed" from="HBoxContainer3/VBoxContainer/ItemList/Maximum" to="." method="_on_maximum_value_changed"]

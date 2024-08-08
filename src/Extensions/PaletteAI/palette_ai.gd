@@ -1,11 +1,12 @@
 extends ConfirmationDialog
 
+const SAVE_PATH = "user://PaletteAI_Files/Network.json"
 const GENERATE_PALETTE_ICON := preload("res://assets/generate_palette.png")
 const Matrix = preload("res://addons/NeuralNetwork/Classes/Matrix.gd")
 const Network = preload("res://addons/NeuralNetwork/Classes/Network.gd")
 
 # some references to nodes that will be created later
-var net
+var net: Network
 var api: Node
 var row_column_value_slider: TextureProgressBar
 var rows: int = 8
@@ -53,7 +54,7 @@ func _on_about_to_popup() -> void:
 	var tools_autoload = get_node_or_null("/root/Tools")
 	%Left.color = tools_autoload.get_assigned_color(1)
 	%Right.color = tools_autoload.get_assigned_color(2)
-	generate_palette(%Left.color, %Right.color)
+	generate_palette(%Left.color, %Right.color, %Maximum.value - 2)
 
 
 func _on_confirmed() -> void:
@@ -65,10 +66,11 @@ func _on_confirmed() -> void:
 func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if FileAccess.file_exists("user://PaletteAI/Ai.tscn"):
-		net = ResourceLoader.load("user://PaletteAI/Ai.tscn")
-	else:
-		net = Network.new([6, 16, 16, 3])
+	var properly_loaded = load_network(SAVE_PATH)
+	if not properly_loaded:
+		properly_loaded = load_network("res://assets/Predictor.json")
+		if not properly_loaded:
+			net = Network.new([6, 10, 10, 3])
 
 
 func get_training_data() -> Array[Array]:
@@ -101,9 +103,9 @@ func get_training_data() -> Array[Array]:
 func generate_palette(
 	color_a: Color,
 	color_b: Color,
+	new_colors: int = 100,
 	width: int = 8,
-	height: int = 8,
-	new_colors: int = 100
+	height: int = 8
 ) -> void:
 	var palette_colors := PackedColorArray()
 	var serialize_data := {"comment": "Ai palette", "colors": [], "width": width, "height": height}
@@ -117,7 +119,11 @@ func generate_palette(
 		for _a in 3:
 			input.pop_front()
 		input.append_array(next_color)
-		var color = Color(next_color[0], next_color[1], next_color[2])
+		var color = Color(
+			snappedf(next_color[0], 0.01),
+			snappedf(next_color[1], 0.01),
+			snappedf(next_color[2], 0.01)
+		)
 		if current_color.is_equal_approx(color):
 			break
 		if !color in palette_colors:
@@ -132,7 +138,8 @@ func generate_palette(
 func train_on_current_palette():
 	var data = get_training_data()
 	data.shuffle()
-	net.SGD(data, 100, 5, 10)
+	net.SGD(data, 1000, 5, 5.0)
+	save_network(net, SAVE_PATH)
 
 
 func _on_row_column_item_selected(_index: int) -> void:
@@ -152,6 +159,7 @@ func update_preview() -> void:
 	var i := 0
 	match row_column_option.selected:
 		0:  # Rows
+			@warning_ignore("narrowing_conversion")
 			rows = row_column_value_slider.value
 			columns = ceili(float(colors_size) / rows)
 			image_preview = Image.create(columns, rows, false, Image.FORMAT_RGBA8)
@@ -162,6 +170,7 @@ func update_preview() -> void:
 					image_preview.set_pixel(x, y, colors[i])
 					i += 1
 		1:  # Columns
+			@warning_ignore("narrowing_conversion")
 			columns = row_column_value_slider.value
 			rows = ceili(float(colors_size) / columns)
 			image_preview = Image.create(columns, rows, false, Image.FORMAT_RGBA8)
@@ -176,23 +185,74 @@ func update_preview() -> void:
 
 func _exit_tree() -> void:  # Extension is being uninstalled or disabled
 	# remember to remove things that you added using this extension
-	DirAccess.make_dir_recursive_absolute("user://PaletteAI")
+	palette_ai_button.queue_free()
 
 
 func _on_left_color_changed(color: Color) -> void:
-	generate_palette(%Left.color, %Right.color)
+	generate_palette(%Left.color, %Right.color, %Maximum.value - 2)
 
 
 func _on_right_color_changed(color: Color) -> void:
-	generate_palette(%Left.color, %Right.color)
+	generate_palette(%Left.color, %Right.color, %Maximum.value - 2)
+
+
+func _on_maximum_value_changed(value: float) -> void:
+	generate_palette(%Left.color, %Right.color, %Maximum.value - 2)
 
 
 func _on_train_pressed() -> void:
-	$VBoxContainer/Train.text = "Training Started: This will take a few minutes"
-	$VBoxContainer/Train.disabled = true
+	%Train.text = "Training Started: This will take a few minutes"
+	%Train.disabled = true
 	await get_tree().process_frame
 	await get_tree().process_frame
 	train_on_current_palette()
-	generate_palette(%Left.color, %Right.color)
-	$VBoxContainer/Train.disabled = false
-	$VBoxContainer/Train.text = "Train on Pixelorama's current palette"
+	generate_palette(%Left.color, %Right.color, %Maximum.value - 2)
+	%Train.disabled = false
+	%Train.text = "Train on Pixelorama's current palette"
+
+
+func save_network(network: Network, path: String) -> bool:
+	var serialized_data := network.serialize()
+	if not serialized_data:
+		push_error("File failed to save. Converting network data to dictionary failed.")
+		return false
+	var to_save := JSON.stringify(serialized_data)
+	if not to_save:
+		push_error("File failed to save. Converting dictionary to JSON failed.")
+		return false
+	if not DirAccess.dir_exists_absolute(path.get_base_dir()):
+		DirAccess.make_dir_recursive_absolute(path.get_base_dir())
+
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if FileAccess.get_open_error() == OK:
+		file.store_string(JSON.stringify(serialized_data, " "))
+		file.close()
+		return true
+	return false
+
+
+func load_network(path: String) -> bool:
+	var file := FileAccess.open(path, FileAccess.READ)
+	var err = FileAccess.get_open_error()
+	if err != OK:
+		push_error(("File failed to open. Error code %s (%s)") % [err, error_string(err)])
+		return false
+	var data_json := file.get_as_text()
+	file.close()
+
+	var test_json_conv := JSON.new()
+	var error := test_json_conv.parse(data_json)
+	if error != OK:
+		push_error("Error, json file. Error code %s (%s)" % [error, error_string(error)])
+		printerr("Error: ", error)
+		printerr("Error Line: ", test_json_conv.get_error_line())
+		printerr("Error String: ", test_json_conv.get_error_message())
+		return false
+
+	var result = test_json_conv.get_data()
+	if typeof(result) != TYPE_DICTIONARY:
+		push_error("Error, json parsed result is: %s" % typeof(result))
+		return false
+
+	net = Network.create_network_from_dictionary(result)
+	return true
